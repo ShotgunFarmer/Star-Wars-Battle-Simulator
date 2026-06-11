@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Star Wars — Battle Simulator</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600&family=Share+Tech+Mono&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080a0e;
+      --bg-card: #0e1117;
+      --bg-card2: #141820;
+      --border: rgba(255,255,255,0.07);
+      --border-strong: rgba(255,255,255,0.14);
+      --text: #e8eaf0;
+      --text-muted: #7a8499;
+      --text-dim: #3d4455;
+      --alpha-blue: #4a8fd4;
+      --alpha-blue-dim: rgba(74,143,212,0.12);
+      --omega-red: #c04a3a;
+      --omega-red-dim: rgba(192,74,58,0.12);
+      --gold: #c8a855;
+      --gold-dim: rgba(200,168,85,0.12);
+      --radius: 6px;
+      --radius-lg: 10px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      font-size: 16px;
+    }
+
+    /* ─── LOGIN ─── */
+    #login-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #login-backdrop {
+      position: absolute; inset: 0;
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      background: rgba(8,10,14,0.7);
+    }
+    #login-box {
+      position: relative; z-index: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-top: 1px solid var(--gold);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem 2rem 2rem;
+      width: 320px; text-align: center;
+    }
+    .login-logo {
+      width: 44px; height: 44px; border: 1.5px solid var(--gold);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.25rem;
+    }
+    .login-logo-inner {
+      width: 18px; height: 18px; background: var(--gold);
+      clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    }
+    .login-title { font-size: 13px; letter-spacing: 4px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2rem; }
+    .login-title strong { color: var(--gold); display: block; font-size: 18px; letter-spacing: 3px; margin-bottom: 4px; }
+    .pin-dots { display: flex; gap: 14px; justify-content: center; margin-bottom: 1.75rem; }
+    .pin-dot { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--border-strong); background: transparent; transition: background 0.15s, border-color 0.15s; }
+    .pin-dot.filled { background: var(--gold); border-color: var(--gold); }
+    .pin-dot.error { background: var(--omega-red); border-color: var(--omega-red); }
+    .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.25rem; }
+    .num-btn { padding: 13px; background: var(--bg-card2); border: 1px solid var(--border-strong); border-radius: var(--radius); color: var(--text); font-family: 'Rajdhani', sans-serif; font-size: 18px; font-weight: 600; cursor: pointer; transition: background 0.12s; letter-spacing: 1px; }
+    .num-btn:hover { background: #1e2430; border-color: rgba(255,255,255,0.22); }
+    .num-btn:active { transform: scale(0.95); }
+    .num-btn.del { font-size: 14px; color: var(--text-muted); }
+    .num-btn.empty { visibility: hidden; }
+    .login-error { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--omega-red); letter-spacing: 2px; min-height: 20px; }
+
+    /* ─── HEADER ─── */
+    .site-header { border-bottom: 1px solid var(--border); padding: 1.5rem 2rem; display: flex; align-items: center; gap: 1rem; }
+    .logo-mark { width: 36px; height: 36px; border: 1.5px solid var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo-inner { width: 14px; height: 14px; background: var(--gold); clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+    .logo-text { font-size: 13px; letter-spacing: 4px; text-transform: uppercase; color: var(--text-muted); font-weight: 400; }
+    .logo-text strong { color: var(--gold); font-weight: 600; letter-spacing: 3px; }
+
+    /* ─── MAIN ─── */
+    .main { max-width: 960px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+    .page-title { font-size: 32px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 6px; color: var(--text); }
+    .page-desc { font-size: 14px; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 2.5rem; font-family: 'Share Tech Mono', monospace; }
+    .step-label { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 12px; font-family: 'Share Tech Mono', monospace; }
+
+    /* ─── GROUPS / DROPDOWNS ─── */
+    .groups { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .group-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg-card); border: 1px solid var(--border-strong);
+      border-radius: var(--radius); cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      user-select: none;
+    }
+    .group-header:hover { border-color: rgba(255,255,255,0.22); background: var(--bg-card2); }
+    .group-header.open { border-color: var(--gold); }
+    .group-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .group-name { font-size: 14px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; flex: 1; }
+    .group-count { font-size: 11px; color: var(--text-muted); font-family: 'Share Tech Mono', monospace; }
+    .group-arrow { font-size: 12px; color: var(--text-dim); transition: transform 0.2s; }
+    .group-header.open .group-arrow { transform: rotate(180deg); }
+    .group-chips {
+      display: none; flex-wrap: wrap; gap: 8px;
+      padding: 10px 14px 14px;
+      background: var(--bg-card2);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 var(--radius) var(--radius);
+      margin-top: -8px;
+    }
+    .group-chips.open { display: flex; }
+
+    /* ─── POOL CHIPS ─── */
+    .pool-chip {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 13px; border: 1px solid var(--border-strong);
+      border-radius: var(--radius); background: var(--bg-card); color: var(--text);
+      font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 500;
+      letter-spacing: 0.5px; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s; user-select: none;
+    }
+    .pool-chip:hover { border-color: rgba(255,255,255,0.25); background: #1a1f2a; }
+    .pool-chip.selected { border-color: var(--gold); background: var(--gold-dim); }
+    .pool-chip.in-team { opacity: 0.3; pointer-events: none; }
+    .side-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .chip-type { font-size: 11px; color: var(--text-muted); font-weight: 400; margin-left: 2px; }
+
+    /* ─── ASSIGN ROW ─── */
+    .assign-row { display: none; gap: 8px; margin-bottom: 2rem; flex-wrap: wrap; }
+    .assign-row.visible { display: flex; }
+    .assign-btn { padding: 7px 16px; border-radius: var(--radius); font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; border: 1px solid; transition: background 0.15s; }
+    .assign-btn.alpha { border-color: var(--alpha-blue); color: var(--alpha-blue); background: transparent; }
+    .assign-btn.alpha:hover { background: var(--alpha-blue-dim); }
+    .assign-btn.omega { border-color: var(--omega-red); color: var(--omega-red); background: transparent; }
+    .assign-btn.omega:hover { background: var(--omega-red-dim); }
+    .assign-btn.cancel { border-color: var(--border-strong); color: var(--text-muted); background: transparent; }
+    .assign-btn.cancel:hover { background: var(--bg-card2); }
+
+    /* ─── ARENA ─── */
+    .arena {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0;
+      margin-bottom: 2rem;
+      align-items: stretch;
+    }
+    .team-zone {
+      background: var(--bg-card); border: 1px solid var(--border);
+      padding: 1.25rem; min-height: 220px;
+    }
+    .team-zone.alpha { border-radius: var(--radius-lg) 0 0 var(--radius-lg); border-right: none; border-top-color: var(--alpha-blue); }
+    .team-zone.omega { border-radius: 0 var(--radius-lg) var(--radius-lg) 0; border-left: none; border-top-color: var(--omega-red); }
+    .team-header { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .team-header.alpha { color: var(--alpha-blue); }
+    .team-header.omega { color: var(--omega-red); }
+    .team-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .alpha .team-dot { background: var(--alpha-blue); }
+    .omega .team-dot { background: var(--omega-red); }
+    .team-members { display: flex; flex-direction: column; gap: 6px; }
+    .member-chip { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--radius); background: var(--bg-card2); border: 1px solid var(--border); font-size: 13px; font-weight: 500; }
+    .member-chip .remove { margin-left: auto; color: var(--text-dim); cursor: pointer; font-size: 18px; line-height: 1; padding: 0 2px; transition: color 0.12s; }
+    .member-chip .remove:hover { color: var(--omega-red); }
+    .empty-hint { font-size: 13px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; padding: 1rem 0; letter-spacing: 1px; }
+
+    /* ─── VS DIVIDER ─── */
+    .vs-divider {
+      display: flex; align-items: center; justify-content: center;
+      width: 48px;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .vs-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px; color: var(--text-dim); letter-spacing: 3px;
+      font-weight: 600;
+    }
+
+    /* ─── FIGHT SECTION ─── */
+    .fight-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .fight-info { flex: 1; min-width: 200px; }
+    .fight-info-title { font-size: 16px; font-weight: 600; letter-spacing: 1px; color: var(--text); margin-bottom: 4px; }
+    .fight-info-sub { font-size: 13px; color: var(--text-muted); font-family: 'Share Tech Mono', monospace; }
+    .fight-teams-preview { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 200px; }
+    .fight-team-pill {
+      flex: 1; padding: 8px 12px; border-radius: var(--radius);
+      font-size: 13px; font-weight: 600; text-align: center;
+      font-family: 'Share Tech Mono', monospace; letter-spacing: 1px;
+    }
+    .fight-team-pill.alpha { background: var(--alpha-blue-dim); color: var(--alpha-blue); border: 1px solid rgba(74,143,212,0.3); }
+    .fight-team-pill.omega { background: var(--omega-red-dim); color: var(--omega-red); border: 1px solid rgba(192,74,58,0.3); }
+    .fight-vs { font-size: 11px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; letter-spacing: 2px; }
+    .fight-btn {
+      padding: 12px 28px;
+      background: transparent; border: 1px solid var(--gold);
+      border-radius: var(--radius-lg); color: var(--gold);
+      font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 600;
+      letter-spacing: 3px; text-transform: uppercase; cursor: pointer;
+      transition: background 0.15s; white-space: nowrap;
+    }
+    .fight-btn:hover:not(:disabled) { background: var(--gold-dim); }
+    .fight-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* ─── RESULT ─── */
+    .result-box { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-card); padding: 1.5rem; margin-bottom: 1.5rem; }
+    .result-winner { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Share Tech Mono', monospace; }
+    .result-winner.alpha { color: var(--alpha-blue); }
+    .result-winner.result-omega { color: var(--omega-red); }
+    .result-winner.draw { color: var(--gold); }
+    .trophy-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .result-divider { height: 1px; background: var(--border); margin: 10px 0 14px; }
+    .result-text { font-size: 15px; line-height: 1.75; color: var(--text); font-weight: 400; }
+    .score-bars { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; margin-top: 10px; }
+    .bar-wrap { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 3px; }
+    .bar-alpha { background: var(--alpha-blue); }
+    .bar-omega-fill { background: var(--omega-red); }
+    .bar-label { font-size: 11px; color: var(--text-dim); text-align: center; letter-spacing: 1px; font-family: 'Share Tech Mono', monospace; }
+    .score-nums { display: grid; grid-template-columns: 1fr auto 1fr; margin-top: 4px; }
+    .score-num { font-size: 13px; font-weight: 500; }
+    .score-num.alpha { color: var(--alpha-blue); }
+    .score-num.omega { color: var(--omega-red); text-align: right; }
+    .score-num.mid { text-align: center; font-size: 11px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; }
+    .stat-row { display: grid; grid-template-columns: 1fr 80px 1fr; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .stat-name { font-size: 11px; color: var(--text-dim); text-align: center; letter-spacing: 1px; font-family: 'Share Tech Mono', monospace; }
+    .stat-bar-a { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+    .stat-bar-b { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; direction: rtl; }
+    .stat-fill-a { height: 100%; border-radius: 2px; background: var(--alpha-blue); }
+    .stat-fill-b { height: 100%; border-radius: 2px; background: var(--omega-red); }
+    .reset-row { text-align: center; margin-bottom: 1rem; }
+    .reset-btn { background: transparent; border: 1px solid var(--border-strong); border-radius: var(--radius); color: var(--text-muted); font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; padding: 8px 20px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+    .reset-btn:hover { background: var(--bg-card2); color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <div id="login-overlay">
+    <div id="login-backdrop"></div>
+    <div id="login-box">
+      <div class="login-logo"><div class="login-logo-inner"></div></div>
+      <div class="login-title"><strong>Battle Simulator</strong>Zugangscode eingeben</div>
+      <div class="pin-dots" id="pin-dots">
+        <div class="pin-dot" id="dot-0"></div>
+        <div class="pin-dot" id="dot-1"></div>
+        <div class="pin-dot" id="dot-2"></div>
+      </div>
+      <div class="numpad">
+        <button class="num-btn" onclick="pinPress('1')">1</button>
+        <button class="num-btn" onclick="pinPress('2')">2</button>
+        <button class="num-btn" onclick="pinPress('3')">3</button>
+        <button class="num-btn" onclick="pinPress('4')">4</button>
+        <button class="num-btn" onclick="pinPress('5')">5</button>
+        <button class="num-btn" onclick="pinPress('6')">6</button>
+        <button class="num-btn" onclick="pinPress('7')">7</button>
+        <button class="num-btn" onclick="pinPress('8')">8</button>
+        <button class="num-btn" onclick="pinPress('9')">9</button>
+        <button class="num-btn empty"></button>
+        <button class="num-btn" onclick="pinPress('0')">0</button>
+        <button class="num-btn del" onclick="pinDelete()">&#9003;</button>
+      </div>
+      <div class="login-error" id="login-error"></div>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="logo-mark"><div class="logo-inner"></div></div>
+    <div class="logo-text"><strong>Star Wars</strong> &nbsp;Battle Simulator</div>
+  </header>
+
+  <main class="main">
+    <h1 class="page-title">What If?</h1>
+    <p class="page-desc">// wähle deine kämpfer — die macht entscheidet</p>
+
+    <div class="step-label">01 — Charakter auswählen</div>
+    <div class="groups" id="groups"></div>
+    <div class="assign-row" id="assign-row">
+      <button class="assign-btn alpha" onclick="assignSelected('alpha')">&#9656; Team Alpha</button>
+      <button class="assign-btn omega" onclick="assignSelected('omega')">&#9656; Team Omega</button>
+      <button class="assign-btn cancel" onclick="clearSelected()">Abbrechen</button>
+    </div>
+
+    <div class="step-label">02 — Teams aufstellen</div>
+    <div class="arena">
+      <div class="team-zone alpha">
+        <div class="team-header alpha"><span class="team-dot"></span> Team Alpha</div>
+        <div class="team-members" id="team-alpha-members"><div class="empty-hint">_ noch leer</div></div>
+      </div>
+      <div class="vs-divider"><span class="vs-text">VS</span></div>
+      <div class="team-zone omega">
+        <div class="team-header omega"><span class="team-dot"></span> Team Omega</div>
+        <div class="team-members" id="team-omega-members"><div class="empty-hint">_ noch leer</div></div>
+      </div>
+    </div>
+
+    <div class="step-label">03 — Kampf simulieren</div>
+    <div class="fight-section">
+      <div class="fight-info">
+        <div class="fight-info-title">Kampfsimulation</div>
+        <div class="fight-info-sub" id="fight-sub">Stelle beide Teams auf um den Kampf zu starten</div>
+      </div>
+      <div class="fight-teams-preview" id="fight-preview">
+        <div class="fight-team-pill alpha" id="preview-alpha">Team Alpha</div>
+        <div class="fight-vs">VS</div>
+        <div class="fight-team-pill omega" id="preview-omega">Team Omega</div>
+      </div>
+      <button class="fight-btn" id="fight-btn" onclick="startFight()" disabled>&#9654; Kampf starten</button>
+    </div>
+
+    <div id="result-area" style="display:none"></div>
+  </main>
+
+  <script>
+    // ─── PIN ───────────────────────────────────────────
+    const CORRECT_PIN = '420';
+    let pinInput = '';
+    function updateDots() {
+      for (let i = 0; i < 3; i++) {
+        const d = document.getElementById('dot-' + i);
+        d.className = 'pin-dot' + (i < pinInput.length ? ' filled' : '');
+      }
+    }
+    function pinPress(digit) {
+      if (pinInput.length >= 3) return;
+      pinInput += digit;
+      document.getElementById('login-error').textContent = '';
+      updateDots();
+      if (pinInput.length === 3) checkPin();
+    }
+    function pinDelete() {
+      pinInput = pinInput.slice(0, -1);
+      document.getElementById('login-error').textContent = '';
+      updateDots();
+    }
+    function checkPin() {
+      if (pinInput === CORRECT_PIN) {
+        document.getElementById('login-overlay').style.display = 'none';
+      } else {
+        for (let i = 0; i < 3; i++) document.getElementById('dot-' + i).className = 'pin-dot error';
+        document.getElementById('login-error').textContent = 'maybe next time';
+        setTimeout(() => { pinInput = ''; updateDots(); document.getElementById('login-error').textContent = ''; }, 1200);
+      }
+    }
+    document.addEventListener('keydown', e => {
+      if (document.getElementById('login-overlay').style.display === 'none') return;
+      if (e.key >= '0' && e.key <= '9') pinPress(e.key);
+      if (e.key === 'Backspace') pinDelete();
+    });
+
+    // ─── CHARAKTERE ────────────────────────────────────
+    const groups = [
+      {
+        id: 'jedi', name: 'Jedi', dot: '#4a8fd4',
+        chars: [
+          { id:'luke',    name:'Luke Skywalker',   dot:'#4a8fd4', type:'Jedi Master',       macht:93, kampf:88, taktik:82, ausdauer:85 },
+          { id:'anakin',  name:'Anakin Skywalker', dot:'#4a8fd4', type:'Jedi Knight',       macht:95, kampf:96, taktik:72, ausdauer:90 },
+          { id:'yoda',    name:'Yoda',             dot:'#4a8fd4', type:'Jedi Grand Master', macht:99, kampf:82, taktik:98, ausdauer:65 },
+        ]
+      },
+      {
+        id: 'sith', name: 'Sith', dot: '#c04a3a',
+        chars: [
+          { id:'vader',   name:'Darth Vader',    dot:'#c04a3a', type:'Sith Lord',     macht:98, kampf:95, taktik:85, ausdauer:80 },
+          { id:'sidious', name:'Darth Sidious',  dot:'#c04a3a', type:'Sith Emperor',  macht:100,kampf:75, taktik:100,ausdauer:70 },
+          { id:'malgus',  name:'Darth Malgus',   dot:'#c04a3a', type:'Sith Warrior',  macht:85, kampf:92, taktik:78, ausdauer:88 },
+        ]
+      },
+      {
+        id: 'kopfgeld', name: 'Kopfgeldjäger', dot: '#c8a855',
+        chars: [
+          { id:'boba',   name:'Boba Fett',  dot:'#c8a855', type:'Kopfgeldjäger', macht:0, kampf:78, taktik:85, ausdauer:80 },
+          { id:'jango',  name:'Jango Fett', dot:'#c8a855', type:'Kopfgeldjäger', macht:0, kampf:82, taktik:83, ausdauer:82 },
+          { id:'cadbane',name:'Cad Bane',   dot:'#c8a855', type:'Kopfgeldjäger', macht:0, kampf:80, taktik:88, ausdauer:78 },
+        ]
+      },
+      {
+        id: 'rebellen', name: 'Rebellen', dot: '#5daa6a',
+        chars: [
+          { id:'han',        name:'Han Solo',     dot:'#5daa6a', type:'Smuggler',        macht:0, kampf:70, taktik:80, ausdauer:75 },
+          { id:'rebellsoldat',name:'Rebelltruppe',dot:'#5daa6a', type:'Rebell',          macht:0, kampf:45, taktik:50, ausdauer:55 },
+        ]
+      },
+      {
+        id: 'imperiale', name: 'Imperiale', dot: '#8899aa',
+        chars: [
+          { id:'sturmtruppe',  name:'Sturmtruppe',  dot:'#8899aa', type:'Imperialer Soldat', macht:0, kampf:42, taktik:40, ausdauer:50 },
+          { id:'schneetruppe', name:'Schneetruppe',  dot:'#8899aa', type:'Imperialer Soldat', macht:0, kampf:44, taktik:45, ausdauer:52 },
+        ]
+      },
+      {
+        id: 'separatisten', name: 'Separatisten', dot: '#b07a3a',
+        chars: [
+          { id:'grievous',    name:'General Grievous',  dot:'#b07a3a', type:'Oberbefehlshaber', macht:0,  kampf:88, taktik:82, ausdauer:85 },
+          { id:'b2droid',     name:'B2 Kampfdroide',    dot:'#b07a3a', type:'Kampfdroide',      macht:0,  kampf:55, taktik:35, ausdauer:70 },
+          { id:'superdroid',  name:'Superkampfdroide',  dot:'#b07a3a', type:'Elitedroide',      macht:0,  kampf:68, taktik:45, ausdauer:80 },
+        ]
+      },
+    ];
+
+    // Flache Liste aller Charaktere für schnellen Zugriff
+    const allChars = groups.flatMap(g => g.chars);
+
+    const statLabels = { macht:'Macht', kampf:'Kampf', taktik:'Taktik', ausdauer:'Ausdauer' };
+
+    const verdicts = {
+      alpha: [
+        "Team Alpha dominiert diesen Kampf von Anfang an. Ihre kombinierte Stärke lässt dem Gegner kaum Raum zu atmen – ein klarer Sieg.",
+        "Die Kämpfer von Team Alpha zeigen ihre überlegene Stärke und Erfahrung. Team Omega findet keine Lücken in ihrer Verteidigung.",
+        "In diesem Duell beweist Team Alpha eindrucksvoll, warum ihre Kombination unschlagbar ist.",
+      ],
+      omega: [
+        "Team Omega überrascht mit einer gnadenlosen Offensivstrategie. Die Gegenseite ist machtlos gegen diese vereinte Front.",
+        "Unterschätzt – Team Omega zeigt, was in ihnen steckt. Am Ende steht ein verdienter Sieg.",
+        "Mit präziser Taktik und unbändigem Kampfgeist kämpft sich Team Omega zum Sieg.",
+      ],
+      draw: [
+        "Ein Kampf für die Geschichtsbücher – beide Teams sind so ebenbürtig, dass kein Sieger ermittelt werden kann.",
+        "Die Kräfte heben sich vollständig auf. Weder Team Alpha noch Team Omega kann die Oberhand gewinnen.",
+      ]
+    };
+
+    let teams = { alpha: [], omega: [] };
+    let selectedId = null;
+    let openGroups = new Set();
+
+    function renderGroups() {
+      const container = document.getElementById('groups');
+      container.innerHTML = '';
+      groups.forEach(g => {
+        const inTeamCount = g.chars.filter(c => teams.alpha.includes(c.id) || teams.omega.includes(c.id)).length;
+        const isOpen = openGroups.has(g.id);
+
+        const header = document.createElement('div');
+        header.className = 'group-header' + (isOpen ? ' open' : '');
+        header.innerHTML = `
+          <span class="group-dot" style="background:${g.dot}"></span>
+          <span class="group-name" style="color:${g.dot}">${g.name}</span>
+          <span class="group-count">${g.chars.length} Kämpfer${inTeamCount > 0 ? ' · ' + inTeamCount + ' im Team' : ''}</span>
+          <span class="group-arrow">&#9660;</span>`;
+        header.onclick = () => toggleGroup(g.id);
+
+        const chips = document.createElement('div');
+        chips.className = 'group-chips' + (isOpen ? ' open' : '');
+        g.chars.forEach(c => {
+          const inTeam = teams.alpha.includes(c.id) || teams.omega.includes(c.id);
+          const chip = document.createElement('div');
+          chip.className = 'pool-chip' + (inTeam ? ' in-team' : '') + (selectedId === c.id ? ' selected' : '');
+          chip.onclick = () => selectChar(c.id);
+          chip.innerHTML = `<span class="side-dot" style="background:${c.dot}"></span>${c.name}<span class="chip-type">${c.type}</span>`;
+          chips.appendChild(chip);
+        });
+
+        container.appendChild(header);
+        container.appendChild(chips);
+      });
+      document.getElementById('assign-row').className = 'assign-row' + (selectedId ? ' visible' : '');
+    }
+
+    function toggleGroup(id) {
+      if (openGroups.has(id)) openGroups.delete(id);
+      else openGroups.add(id);
+      renderGroups();
+    }
+
+    function selectChar(id) {
+      if (teams.alpha.includes(id) || teams.omega.includes(id)) return;
+      selectedId = selectedId === id ? null : id;
+      renderGroups();
+    }
+
+    function assignSelected(team) {
+      if (!selectedId) return;
+      const other = team === 'alpha' ? 'omega' : 'alpha';
+      if (teams[other].includes(selectedId)) { teams[other] = teams[other].filter(x => x !== selectedId); renderTeam(other); }
+      if (!teams[team].includes(selectedId)) { teams[team].push(selectedId); renderTeam(team); }
+      selectedId = null;
+      renderGroups();
+      updateFightSection();
+    }
+
+    function removeChar(id, team) {
+      teams[team] = teams[team].filter(x => x !== id);
+      renderTeam(team);
+      renderGroups();
+      updateFightSection();
+    }
+
+    function clearSelected() { selectedId = null; renderGroups(); }
+
+    function renderTeam(team) {
+      const el = document.getElementById(`team-${team}-members`);
+      const members = teams[team].map(id => allChars.find(c => c.id === id));
+      if (!members.length) { el.innerHTML = '<div class="empty-hint">_ noch leer</div>'; return; }
+      el.innerHTML = '';
+      members.forEach(c => {
+        const chip = document.createElement('div');
+        chip.className = 'member-chip';
+        chip.innerHTML = `<span class="side-dot" style="background:${c.dot}"></span><span>${c.name}</span><span class="chip-type">${c.type}</span><span class="remove" onclick="removeChar('${c.id}','${team}')">×</span>`;
+        el.appendChild(chip);
+      });
+    }
+
+    function updateFightSection() {
+      const aNames = teams.alpha.map(id => allChars.find(c => c.id === id)?.name || '');
+      const oNames = teams.omega.map(id => allChars.find(c => c.id === id)?.name || '');
+      const ready = teams.alpha.length > 0 && teams.omega.length > 0;
+
+      document.getElementById('fight-btn').disabled = !ready;
+      document.getElementById('preview-alpha').textContent = aNames.length ? aNames.join(', ') : 'Team Alpha';
+      document.getElementById('preview-omega').textContent = oNames.length ? oNames.join(', ') : 'Team Omega';
+      document.getElementById('fight-sub').textContent = ready
+        ? `${teams.alpha.length} vs ${teams.omega.length} Kämpfer — bereit`
+        : 'Stelle beide Teams auf um den Kampf zu starten';
+    }
+
+    function score(team) {
+      const members = teams[team].map(id => allChars.find(c => c.id === id));
+      if (!members.length) return { total:0, macht:0, kampf:0, taktik:0, ausdauer:0 };
+      const keys = ['macht','kampf','taktik','ausdauer'];
+      const sums = {};
+      keys.forEach(k => sums[k] = Math.round(members.reduce((s,c) => s + c[k], 0) / members.length));
+      sums.total = Math.round(keys.reduce((s,k) => s + sums[k], 0) / keys.length);
+      return sums;
+    }
+
+    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function startFight() {
+      const sa = score('alpha'), so = score('omega');
+      const diff = sa.total - so.total;
+      let winner, wLabel;
+      if (Math.abs(diff) <= 3) { winner = 'draw'; wLabel = 'Unentschieden'; }
+      else if (diff > 0) { winner = 'alpha'; wLabel = 'Team Alpha'; }
+      else { winner = 'omega'; wLabel = 'Team Omega'; }
+
+      const total = Math.max(sa.total, so.total) || 1;
+      const keys = ['macht','kampf','taktik','ausdauer'];
+      let statRows = '';
+      keys.forEach(k => {
+        const va = sa[k], vb = so[k], mx = Math.max(va, vb) || 1;
+        statRows += `<div class="stat-row">
+          <div class="stat-bar-a"><div class="stat-fill-a" style="width:${Math.round(va/mx*100)}%"></div></div>
+          <div class="stat-name">${statLabels[k]}</div>
+          <div class="stat-bar-b"><div class="stat-fill-b" style="width:${Math.round(vb/mx*100)}%"></div></div>
+        </div>`;
+      });
+
+      const dotColor = winner==='alpha' ? '#4a8fd4' : winner==='omega' ? '#c04a3a' : '#c8a855';
+      const winClass = winner==='omega' ? 'result-omega' : winner;
+
+      const ra = document.getElementById('result-area');
+      ra.style.display = 'block';
+      ra.innerHTML = `
+        <div class="result-box">
+          <div class="result-winner ${winClass}">
+            <span class="trophy-dot" style="background:${dotColor}"></span>
+            Sieger: ${wLabel}
+          </div>
+          <div class="result-divider"></div>
+          <div class="result-text">${pick(verdicts[winner])}</div>
+          <div class="score-bars">
+            <div class="bar-wrap"><div class="bar-fill bar-alpha" style="width:${Math.round(sa.total/total*100)}%"></div></div>
+            <div class="bar-label">Gesamt</div>
+            <div class="bar-wrap"><div class="bar-fill bar-omega-fill" style="width:${Math.round(so.total/total*100)}%"></div></div>
+          </div>
+          <div class="score-nums">
+            <span class="score-num alpha">${sa.total}</span>
+            <span class="score-num mid">Punkte</span>
+            <span class="score-num omega">${so.total}</span>
+          </div>
+          <div class="result-divider" style="margin-top:14px"></div>
+          ${statRows}
+        </div>
+        <div class="reset-row">
+          <button class="reset-btn" onclick="resetFight()">&#8635; Neuer Kampf</button>
+        </div>`;
+      ra.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function resetFight() {
+      document.getElementById('result-area').style.display = 'none';
+    }
+
+    renderGroups();
+    renderTeam('alpha');
+    renderTeam('omega');
+    updateFightSection();
+  </script>
+</body>
+</html>
